@@ -18,7 +18,7 @@ trait BloomFilter[A]
   def contains(a: A): Boolean 
 
   def add(a: A): Boolean
-  
+
   override def toString: String = "%s [cap=%s fpp=%s size=%s]".format(this.getClass.getName, capacity, fpp, size)
 
   if(fpp <= 0 || fpp >= 1) throw new IllegalArgumentException("[fpp] must be on the interval (0,1)")
@@ -44,36 +44,39 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
 
   def isFull = count > capacity
 
-  def contains(a: A): Boolean = {
-    val key = a.hashCode.toString
-    bits(key).subsetOf(filter)
-  }
+  /* proxy to contains(b: BitSet) */
+  def contains(a: A): Boolean = contains(bits(keygen(a)))
 
+  /* delegates to contains(b: BitSet) and add(b: BitSet) to avoid recomputing hash */
   def add(a: A): Boolean = {
-    if(contains(a)) true else add_!(a)
+    val bitset = bits(keygen(a))
+    if(contains(bitset)) true else add(bitset)
   }
 
-  protected def add_!(a: A): Boolean = {
-    if(isFull) false else {
-      val key = a.hashCode.toString
-      filter ++= bits(key)
-      count += 1
-      true
-    }
-  }
+  protected def keygen(a: A): String = a.hashCode.toString
 
-  protected def bits(key: String): BitSet = {
-    val bs = new BitSet(numberOfSlices * bitsPerSlice)
+  private def bits(key: String): BitSet = {
+    val bitset = new BitSet(numberOfSlices * bitsPerSlice)
     val x = hash(key, 0)
     val y = hash(key, x)
     var offset = 0
 
     for(i <- 0 until numberOfSlices) {
-      bs(math.abs((x + i * y) % bitsPerSlice) + offset) = true
+      bitset(math.abs((x + i * y) % bitsPerSlice) + offset) = true
       offset += bitsPerSlice
     }
 
-    bs
+    bitset
+  }
+
+  private def contains(bitset: BitSet): Boolean = bitset.subsetOf(filter)
+
+  private def add(bitset: BitSet): Boolean = {
+    if(isFull) false else {
+      filter ++= bitset
+      count += 1
+      true
+    }
   }
 
   override def toString: String = "%s [%d x %d]".format(super.toString, numberOfSlices, bitsPerSlice)
@@ -96,9 +99,7 @@ case class InfiniteBloomFilter[A](initialCapacity: Int = 1000, fpp: Double) exte
   }
 
   def add(a: A): Boolean = {
-    if(filters.head.isFull)
-      filters.prepend(FiniteBloomFilter[A](initialCapacity, fpp))
-
+    if(filters.head.isFull) filters.prepend(FiniteBloomFilter[A](initialCapacity, fpp))
     filters.head.add(a)
   }
 }
@@ -116,12 +117,12 @@ object BloomFilter
   }
 
   def apply[A](capacity: Int, fpp: Double): BloomFilter[A] = {
-    if(capacity == 0 || capacity == -1) 
+    if(capacity == -1)
       InfiniteBloomFilter[A](DEFAULT_CAPACITY, fpp)
     else if(capacity > 0)
       FiniteBloomFilter(capacity, fpp)
     else
-      throw new IllegalArgumentException("[capacity] must be -1, 0, or a positive value")
+      throw new IllegalArgumentException("[capacity] must be -1 or a positive value")
   }
 
   def apply[A](capacity: Int): BloomFilter[A] = apply(capacity, DEFAULT_FPP)
