@@ -1,5 +1,7 @@
 package com.olchovy.bloomfilter
 
+import java.util.Date
+import scala.io.Source
 import org.scalatest.FunSuite
 import collection.mutable.ListBuffer
 
@@ -27,8 +29,10 @@ class BloomFilterSuite extends FunSuite with BloomFilterBehaviors
     filter.add("banana")
     assert(filter.contains("banana"))
 
-    filter.add("cucumber")
-    assert(filter.contains("cucumber"))
+    filter.add("coriander")
+    assert(filter.contains("coriander"))
+
+    assert(!filter.contains("dill"))
   }
 
   def containsDoubleTest = (filter: BloomFilter[Double]) => {
@@ -40,6 +44,8 @@ class BloomFilterSuite extends FunSuite with BloomFilterBehaviors
 
     filter.add(42.0)
     assert(filter.contains(42.0))
+
+    assert(!filter.contains(137d))
   }
 
   def capacityTest = (filter: BloomFilter[Int]) => {
@@ -85,6 +91,23 @@ class BloomFilterSuite extends FunSuite with BloomFilterBehaviors
       }
     }
   }
+
+  ignore("insert /usr/share/dict/words") {
+    val words = Source.fromFile("/usr/share/dict/words").getLines.toList
+
+    new InfiniteFixture[String](0.3) {
+      val startTime = (new Date).getTime
+
+      for(word <- words) {
+        filter.add(word)
+      }
+
+      val endTime = (new Date).getTime
+      val elapsedTime = endTime - startTime
+
+      println("Time elapsed: %d".format(elapsedTime))
+    }
+  }
 }
 
 trait BloomFilterBehaviors
@@ -100,40 +123,3 @@ trait BloomFilterBehaviors
   }
 }
 
-/*
-object BloomFilterTest
-{
-  val fpps = Seq(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.01, 0.001, 0.0001, 0.00001)
-
-  def finiteBloomFilterTest {
-    val n = 1000
-
-    fpps.foreach { fpp =>
-      val bf = InfiniteBloomFilter[Int](n, fpp)
-      for(i <- 0 until n) bf.add(i)
-
-      println(bf)
-      assert(bf.contains(0))
-      assert(bf.size <= bf.capacity)
-      assert(fpr(bf, n) <= bf.fpp)
-    }
-  }
-
-  def infiniteBloomFilterTest {
-    val n = 1000
-    val nnn = n * 3
-
-    fpps.foreach { fpp =>
-      val bf = InfiniteBloomFilter[Int](n, fpp)
-      for(i <- 0 until nnn) bf.add(i)
-
-      println(bf)
-      assert(fpr(bf, nnn) <= bf.fpp)
-    }
-  }
-
-  private def fpr[A](bf: BloomFilter[A], n: Int): Double = {
-    math.abs((bf.size.toDouble / n) - 1)
-  }
-}
-*/
