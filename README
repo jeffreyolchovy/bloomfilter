@@ -1,2 +1,8 @@
 An implementation of finite and infinite (scalable) Bloom filters in Scala.
 
+For more information:
+
+Almeida, Paulo; Baquero, Carlos; Preguica, Nuno; Hutchison, David (2007),
+"Scalable Bloom Filters", Information Processing Letters 101 (6): 255–261, 
+http://gsd.di.uminho.pt/members/cbm/ps/dbloom.pdf
+

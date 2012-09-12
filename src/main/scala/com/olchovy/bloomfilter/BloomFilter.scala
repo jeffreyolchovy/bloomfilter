@@ -28,6 +28,21 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
 {
   import BloomFilter._
 
+  /* For more information on partitioning the total number of m bits among the k hash functions,
+   * and the necessary, subsequent creation of the k slices of m/k bits:
+   *
+   * @see http://gsd.di.uminho.pt/members/cbm/ps/dbloom.pdf 
+   *
+   * And, although less helpful, a general overview of the calculation for the total number of bits (from Wikipedia):
+   *
+   * The required number of bits m, given n capacity and a desired false positive probability p
+   * (and assuming the optimal value of k hashes is used) can be computed by [...]:
+   *
+   *    m = -((n ln p)/((ln 2)^2)) 
+   *
+   * @see http://en.wikipedia.org/w/index.php?title=Bloom_filter#Probability_of_false_positives
+   */
+
   protected val numberOfSlices: Int = {
     math.ceil(math.log(1 / fpp) / math.log(2)).toInt
   }
