@@ -50,15 +50,12 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
   }
 
   def serialize: Array[Byte] = {
-    println(filter)
     val length = if(filter.isEmpty) 0 else filter.max + 1
     val hexString = if(length == 0) "" else {
       val bits = Array.fill(length)(0)
       for(n <- filter) bits(n) = 1
-      println(bits.mkString)
       new BigInteger(bits.mkString, 2).toString(16)
     }
-    println(hexString)
     val hexBytes = hexString.getBytes
     val bufferSize = 4 + 8 + 4 + 4 + hexBytes.size
     val buffer = ByteBuffer.allocate(bufferSize)
