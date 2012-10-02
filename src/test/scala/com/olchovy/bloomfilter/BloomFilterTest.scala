@@ -3,9 +3,10 @@ package com.olchovy.bloomfilter
 import java.util.Date
 import scala.io.Source
 import org.scalatest.FunSuite
+import org.scalatest.matchers.ShouldMatchers
 import collection.mutable.ListBuffer
 
-class BloomFilterSuite extends FunSuite with BloomFilterBehaviors
+class BloomFilterSuite extends FunSuite with ShouldMatchers with BloomFilterBehaviors
 {
   trait Fixture[A]
   {
@@ -143,6 +144,17 @@ class BloomFilterSuite extends FunSuite with BloomFilterBehaviors
       assert(filter.capacity == deserialized.capacity)
       assert(filter.fpp == deserialized.fpp)
       assert(filter.size == deserialized.size)
+    }
+  }
+
+  test("serialize and convert <-> hex string") {
+    new FiniteFixture[String](10, 0.01) {
+      filter.add("abc")
+      filter.add("def")
+      val serialized = filter.serialize
+      val hexString = serialized.map("%02x".format(_)).mkString
+      val bytes = hexString.grouped(2).map(Integer.parseInt(_, 16).toByte).toArray
+      serialized should equal (bytes)
     }
   }
 }
