@@ -108,6 +108,43 @@ class BloomFilterSuite extends FunSuite with BloomFilterBehaviors
       println("Time elapsed: %d".format(elapsedTime))
     }
   }
+
+  test("serialization and deserialization") {
+    new FiniteFixture[Int](10, 0.01) {
+      filter.add(1)
+      filter.add(3)
+      filter.add(5)
+
+      assert(filter.contains(1))
+      assert(!filter.contains(2))
+      assert(filter.contains(3))
+      assert(!filter.contains(4))
+      assert(filter.contains(5))
+
+      val serialized = filter.serialize
+      val deserialized = BloomFilter.deserialize[Int](serialized)
+
+      assert(filter.capacity == deserialized.capacity)
+      assert(filter.fpp == deserialized.fpp)
+      assert(filter.size == deserialized.size)
+
+      assert(deserialized.contains(1))
+      assert(!deserialized.contains(2))
+      assert(deserialized.contains(3))
+      assert(!deserialized.contains(4))
+      assert(deserialized.contains(5))
+    }
+  }
+
+  test("serialization and deserialization of empty filter") {
+    new FiniteFixture[String](1000, 0.005) {
+      val serialized = filter.serialize
+      val deserialized = BloomFilter.deserialize[Int](serialized)
+      assert(filter.capacity == deserialized.capacity)
+      assert(filter.fpp == deserialized.fpp)
+      assert(filter.size == deserialized.size)
+    }
+  }
 }
 
 trait BloomFilterBehaviors
