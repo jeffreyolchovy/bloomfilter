@@ -39,7 +39,7 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
 
   def size = count
 
-  def isFull = count > capacity
+  def isFull = count >= capacity
 
   def contains(a: A): Boolean = contains(bits(keygen(a)))
 
@@ -63,7 +63,6 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
     buffer.putDouble(fpp)
     buffer.putInt(count)
     buffer.putInt(length)
-    //for(byte <- hexBytes) buffer.put(byte)
     buffer.put(hexBytes, 0, hexBytes.size)
     buffer.array
   }
