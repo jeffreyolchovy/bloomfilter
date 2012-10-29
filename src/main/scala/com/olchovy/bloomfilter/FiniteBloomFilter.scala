@@ -7,17 +7,17 @@ import scala.collection.mutable.BitSet
 /* A concrete implementation of a Bloom filter that guarantees a false positive probability
  * up until its capacity is exceeded.
  *  
- * For more information on partitioning the total number of m bits among the k hash functions,
- * and the necessary, subsequent creation of the k slices of m/k bits:
+ * For more information on partitioning the total number of M bits among the k hash functions,
+ * and the necessary, subsequent creation of the k slices of m [M/k] bits:
  *
  * @see http://gsd.di.uminho.pt/members/cbm/ps/dbloom.pdf 
  *
  * And, although less helpful, a general overview of the calculation for the total number of bits (from Wikipedia):
  *
- * The required number of bits m, given n capacity and a desired false positive probability p
+ * The required number of bits M, given n capacity and a desired false positive probability P
  * (and assuming the optimal value of k hashes is used) can be computed by [...]:
  *
- *    m = -((n ln p)/((ln 2)^2)) 
+ *    M = -((n ln P)/((ln 2)^2)) 
  *
  * @see http://en.wikipedia.org/w/index.php?title=Bloom_filter#Probability_of_false_positives
  */
@@ -25,15 +25,30 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
 {
   import BloomFilter._
 
-  protected val numberOfSlices: Int = {
+  /** The probability of a given bit being set in a slice
+   *
+   * For any given error probability P and filter size M,
+   * n is maximized by making p = 1/2, regardless of P or M.
+   *
+   * As p corresponds to the fill ratio of a slice,
+   * a filter depicts an optimal use when slices are half full.
+   */
+  protected val p = 0.5
+
+  // number of slices
+  protected val k: Int = {
     math.ceil(math.log(1 / fpp) / math.log(2)).toInt
   }
 
-  protected val bitsPerSlice: Int = {
-    math.ceil((2 * capacity * math.abs(math.log(fpp))) / (numberOfSlices * math.pow(math.log(2), 2))).toInt
+  // bits per slice
+  protected val m: Int = {
+    math.ceil(((1 / p) * capacity * math.abs(math.log(fpp))) / (k * math.pow(math.log(2), 2))).toInt
   }
 
-  protected val filter = new BitSet(numberOfSlices * bitsPerSlice)
+  // total bits
+  protected val M: Int = k * m
+
+  protected val filter = new BitSet(M)
 
   protected var count = 0
 
@@ -70,14 +85,14 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
   protected def keygen(a: A): String = a.hashCode.toString
 
   private def bits(key: String): BitSet = {
-    val bitset = new BitSet(numberOfSlices * bitsPerSlice)
+    val bitset = new BitSet(M)
     val x = hash(key, 0)
     val y = hash(key, x)
     var offset = 0
 
-    for(i <- 0 until numberOfSlices) {
-      bitset(math.abs((x + i * y) % bitsPerSlice) + offset) = true
-      offset += bitsPerSlice
+    for(i <- 0 until k) {
+      bitset(math.abs((x + i * y) % m) + offset) = true
+      offset += m
     }
 
     bitset
@@ -93,7 +108,7 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
     }
   }
 
-  override def toString: String = "%s [%d x %d]".format(super.toString, numberOfSlices, bitsPerSlice)
+  override def toString: String = "%s [%d x %d]".format(super.toString, k, m)
 
   if(capacity <= 0) throw new IllegalArgumentException("[capacity] must be a positive value")
 }
