@@ -32,10 +32,14 @@ object BloomFilter
 
   private val DefaultFPP: Double = 0.01
 
-  private[bloomfilter] def hash(value: String, seed: Int): Int = {
+  def murmurHash(value: String, seed: Int): Int = {
     val f = new MurmurHash(seed)
     value.getBytes.map(_.toInt).foreach(f.append _)
     f.hash
+  }
+
+  def bernsteinHash(value: String, seed: Int): Int = {
+    value.foldLeft(5381 ^ seed)((acc, char) => (acc << 5) + acc + char) & 0xF7777777
   }
 
   def apply[A](capacity: Int, fpp: Double): BloomFilter[A] = {

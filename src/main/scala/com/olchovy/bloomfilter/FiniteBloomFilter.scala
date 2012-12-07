@@ -21,19 +21,19 @@ import scala.collection.mutable.BitSet
  *
  * @see http://en.wikipedia.org/w/index.php?title=Bloom_filter#Probability_of_false_positives
  */
-case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[A]
+case class FiniteBloomFilter[A](capacity: Int, fpp: Double, hash: (String, Int) => Int = BloomFilter.murmurHash) extends BloomFilter[A]
 {
   import BloomFilter._
 
-  protected val numberOfSlices: Int = {
+  protected[bloomfilter] val numberOfSlices: Int = {
     math.ceil(math.log(1 / fpp) / math.log(2)).toInt
   }
 
-  protected val bitsPerSlice: Int = {
+  protected[bloomfilter] val bitsPerSlice: Int = {
     math.ceil((2 * capacity * math.abs(math.log(fpp))) / (numberOfSlices * math.pow(math.log(2), 2))).toInt
   }
 
-  protected val filter = new BitSet(numberOfSlices * bitsPerSlice)
+  protected[bloomfilter] val filter = new BitSet(numberOfSlices * bitsPerSlice)
 
   protected var count = 0
 
@@ -67,9 +67,9 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
     buffer.array
   }
 
-  protected def keygen(a: A): String = a.hashCode.toString
+  protected[bloomfilter] def keygen(a: A): String = a.hashCode.toString
 
-  private def bits(key: String): BitSet = {
+  final private[bloomfilter] def bits(key: String): BitSet = {
     val bitset = new BitSet(numberOfSlices * bitsPerSlice)
     val x = hash(key, 0)
     val y = hash(key, x)
@@ -116,7 +116,7 @@ object FiniteBloomFilter
     }
 
     new FiniteBloomFilter[A](capacity, fpp) {
-      override protected val filter = bitset
+      override protected[bloomfilter] val filter = bitset
       count = previousCount
     }
   }
