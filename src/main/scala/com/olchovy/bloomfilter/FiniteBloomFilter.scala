@@ -69,6 +69,22 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double, hash: (String, Int) 
 
   protected[bloomfilter] def keygen(a: A): String = a.hashCode.toString
 
+  /**
+   * Compute the subset of bits that will be set for a given item's key.
+   * 
+   * NOTE: We only need to call our hash function twice, regardless of 
+   * however many k slices our filter requires.
+   * 
+   * e.g. We can simulate more than two hash functions with the equation:
+   * 
+   *   gi(x) = h1(x) + ih2(x)
+   * 
+   * where i ranges from 0 to some k required hash functions.
+   * 
+   * For more information:
+   * A. Kirsch and M. Mitzenmacher. Building a better bloom filter.
+   * http://www.eecs.harvard.edu/ michaelm/postscripts/tr-02-05.pdf
+   */
   final private[bloomfilter] def bits(key: String): BitSet = {
     val bitset = new BitSet(numberOfSlices * bitsPerSlice)
     val x = hash(key, 0)
