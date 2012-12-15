@@ -93,10 +93,10 @@ class BloomFilterSuite extends FunSuite with ShouldMatchers with BloomFilterBeha
     }
   }
 
-  ignore("insert /usr/share/dict/words") {
-    val words = Source.fromFile("/usr/share/dict/words").getLines.toList
+  test("insert /usr/share/dict/words") {
+    val words = Source.fromFile("/usr/share/dict/words").getLines.take(100 * 1000)
 
-    new InfiniteFixture[String](0.3) {
+    new InfiniteFixture[String](0.1) {
       val startTime = (new Date).getTime
 
       for(word <- words) {

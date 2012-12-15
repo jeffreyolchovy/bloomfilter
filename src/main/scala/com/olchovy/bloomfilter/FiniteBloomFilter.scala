@@ -2,7 +2,7 @@ package com.olchovy.bloomfilter
 
 import java.math.BigInteger
 import java.nio.ByteBuffer
-import scala.collection.mutable.BitSet
+import java.util.BitSet
 
 /* A concrete implementation of a Bloom filter that guarantees a false positive probability
  * up until its capacity is exceeded.
@@ -65,10 +65,10 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
   }
 
   def serialize: Array[Byte] = {
-    val length = if(filter.isEmpty) 0 else filter.max + 1
+    val length = if(filter.isEmpty) 0 else filter.length + 1
     val hexString = if(length == 0) "" else {
       val bits = Array.fill(length)(0)
-      for(n <- filter) bits(n) = 1
+      for(n <- getSetBits()) bits(n) = 1
       new BigInteger(bits.mkString, 2).toString(16)
     }
     val hexBytes = hexString.getBytes
@@ -81,36 +81,51 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
     buffer.put(hexBytes, 0, hexBytes.size)
     buffer.array
   }
-
+  
   protected def keygen(a: A): String = a.hashCode.toString
 
   private def bits(key: String): BitSet = {
-    val bitset = new BitSet(M)
+    val bitset = new BitSet
     val x = hash(key, 0)
     val y = hash(key, x)
     var offset = 0
 
     for(i <- 0 until k) {
-      bitset(math.abs((x + i * y) % m) + offset) = true
+      bitset.set(math.abs((x + i * y) % m) + offset)
       offset += m
     }
 
     bitset
   }
 
-  private def contains(bitset: BitSet): Boolean = bitset.subsetOf(filter)
+  private def contains(bitset: BitSet): Boolean = {
+    val bitset_ = bitset.clone().asInstanceOf[BitSet]
+    bitset_.and(filter)
+    bitset.cardinality == bitset_.cardinality
+  }
 
   private def add(bitset: BitSet): Boolean = {
     if(isFull) false else {
-      filter ++= bitset
+      filter.or(bitset)
       count += 1
       true
     }
   }
 
+  @annotation.tailrec
+  private def getSetBits(from: Int = 0, setBits: List[Int] = Nil): List[Int] = {
+    filter.nextSetBit(from) match {
+      case -1 if setBits.nonEmpty => setBits.reverse
+      case -1 => setBits
+      case i => getSetBits(i + 1, i :: setBits)
+    } 
+  }
+
   override def toString: String = "%s [%d x %d]".format(super.toString, k, m)
 
   if(capacity <= 0) throw new IllegalArgumentException("[capacity] must be a positive value")
+
+  if(M > Integer.MAX_VALUE) throw new IllegalArgumentException("Total number of bits exceeds maximum")
 }
 
 object FiniteBloomFilter
@@ -127,7 +142,7 @@ object FiniteBloomFilter
 
     if(!hexString.isEmpty) {
       val binaryString = new BigInteger(hexString, 16).toString(2).reverse.padTo(length, "0").reverse
-      for((n, i) <- binaryString.zipWithIndex if n == '1') bitset(i) = true
+      for((n, i) <- binaryString.zipWithIndex if n == '1') bitset.set(i)
     }
 
     new FiniteBloomFilter[A](capacity, fpp) {
