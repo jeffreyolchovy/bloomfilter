@@ -61,7 +61,7 @@ case class FiniteBloomFilter[A](capacity: Int, fpp: Double) extends BloomFilter[
   /* this will delegate to `contains(b: BitSet)` and `add(b: BitSet)` to avoid recomputing the hash */
   def add(a: A): Boolean = {
     val bitset = bits(keygen(a))
-    if(contains(bitset)) true else add(bitset)
+    contains(bitset) || add(bitset)
   }
 
   def serialize: Array[Byte] = {
