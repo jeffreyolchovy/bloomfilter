@@ -1,9 +1,16 @@
 name := "bloomfilter"
 
-version := "0.1.2"
+version := "0.2.0-SNAPSHOT"
 
-scalaVersion := "2.9.1"
+scalaVersion := "2.11.8"
 
-resolvers ++= Seq("releases" at "http://scala-tools.org/repo-releases")
+crossScalaVersions := Seq("2.10.6", "2.11.8", "2.12.0-M4")
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "1.6.1" % "test"
+scalacOptions := Seq("-deprecation")
+
+libraryDependencies ++= Seq(
+  "org.scalatest" %% "scalatest" % "2.2.6" % "test",
+  "log4j" % "log4j" % "1.2.17" % "test",
+  "org.slf4j" % "slf4j-api" % "1.7.21" % "test",
+  "org.slf4j" % "slf4j-log4j12" % "1.7.21" % "test"
+)
